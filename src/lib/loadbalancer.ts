@@ -47,26 +47,21 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
     // CORS blocked or network error — try no-cors fallback
   }
 
-  // --- Strategy 2: no-cors fallback (opaque but proves reachable) ---
+  // --- Strategy 2: no-cors fallback (opaque response) ---
   try {
     const ctrl2 = new AbortController();
     const timer2 = setTimeout(() => ctrl2.abort(), 5000);
 
-    const res = await fetch(endpoint, {
+    await fetch(endpoint, {
       method: "HEAD",
       mode: "no-cors",
       signal: ctrl2.signal,
     });
     clearTimeout(timer2);
 
-    const latency = performance.now() - start;
-
-    // opaque response: type === "opaque", status === 0
-    // If fetch didn't throw, the server responded
-    if (res.type === "opaque" || res.ok) {
-      return { endpoint, healthy: true, latency };
-    }
-
+    // Server responded but we can't verify it's not an error page
+    // (opaque responses hide status code). Mark as unhealthy to avoid
+    // false positives when backend is dead but ngrok returns 502.
     return { endpoint, healthy: false, latency: Infinity };
   } catch {
     return { endpoint, healthy: false, latency: Infinity };

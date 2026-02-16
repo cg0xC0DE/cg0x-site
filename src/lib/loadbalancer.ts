@@ -34,7 +34,7 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
     const res = await fetch(endpoint, {
       method: "GET",
       mode: "cors",
-      signal: abortTimeout(5000),
+      signal: abortTimeout(15000),
       headers: { "ngrok-skip-browser-warning": "1" },
     });
 
@@ -60,7 +60,7 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
   // --- Strategy 2: no-cors fallback (opaque response) ---
   try {
     const ctrl2 = new AbortController();
-    const timer2 = setTimeout(() => ctrl2.abort(), 5000);
+    const timer2 = setTimeout(() => ctrl2.abort(), 15000);
 
     await fetch(endpoint, {
       method: "HEAD",

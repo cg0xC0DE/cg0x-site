@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback, type Dispatch, type SetStateAction } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   Github,
@@ -10,39 +11,40 @@ import {
   Wrench,
   Flame,
   Terminal,
-  Cpu,
   Globe,
-  Sparkles,
+  Clipboard,
+  AudioLines,
+  Palette,
 } from "lucide-react";
+import { probeAll } from "@/lib/loadbalancer";
 
-const projects = [
+const tools = [
   {
-    title: "JSON Formatter",
-    description: "Fast, offline JSON beautifier & validator",
-    href: "/tools/json-formatter",
-    icon: Terminal,
+    id: "paste",
+    title: "Paste",
+    description: "轻量在线剪贴板，支持代码高亮与临时分享",
+    path: "/paste/",
+    icon: Clipboard,
     tag: "Tool",
+    needsLB: true,
   },
   {
-    title: "Base64 Codec",
-    description: "Encode & decode Base64 strings instantly",
-    href: "/tools/base64",
-    icon: Cpu,
+    id: "link2asr",
+    title: "Link2ASR",
+    description: "粘贴链接，自动提取音频并转写为文字",
+    path: "/link2asr/",
+    icon: AudioLines,
     tag: "Tool",
+    needsLB: true,
   },
   {
-    title: "Color Picker",
-    description: "HEX / RGB / HSL converter with live preview",
-    href: "/tools/color-picker",
-    icon: Sparkles,
-    tag: "Tool",
-  },
-  {
-    title: "URL Shortener",
-    description: "Self-hosted short link service",
-    href: "/tools/url-shortener",
-    icon: Globe,
-    tag: "Tool",
+    id: "civitai",
+    title: "Civitai 美学探索",
+    description: "AI 美学分析工作台，探索 Civitai 模型与图像美学",
+    path: "https://github.com/cg0xC0DE/civitai-downloader",
+    icon: Palette,
+    tag: "Project",
+    needsLB: false,
   },
 ];
 
@@ -83,8 +85,96 @@ function WeChatIcon({ className }: { className?: string }) {
   );
 }
 
+function WeChatButton({
+  showQR,
+  setShowQR,
+}: {
+  showQR: boolean;
+  setShowQR: Dispatch<SetStateAction<boolean>>;
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (showQR && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({
+        top: r.top - 12,
+        left: r.left + r.width / 2,
+      });
+    }
+  }, [showQR]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        aria-label="WeChat: cq4biz"
+        onClick={() => setShowQR((v) => !v)}
+        className="relative z-[60] flex items-center justify-center w-9 h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
+      >
+        <WeChatIcon className="w-4 h-4" />
+      </button>
+      {showQR &&
+        createPortal(
+          <>
+            {/* backdrop */}
+            <div className="fixed inset-0 z-50" onClick={() => setShowQR(false)} />
+            {/* card */}
+            <div
+              className="fixed z-[55]"
+              style={{ bottom: `calc(100dvh - ${pos.top}px)`, left: pos.left, transform: "translateX(-50%)" }}
+            >
+              <div className="rounded-2xl border border-card-border bg-card p-4 shadow-2xl shadow-black/50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/wechat-qrcode.png"
+                  alt="WeChat QR Code"
+                  style={{ width: "260px", height: "260px" }}
+                  className="rounded-xl block max-w-none"
+                />
+                <p className="mt-3 text-center text-xs leading-relaxed font-mono text-muted">
+                  扫描上方艺术二维码<br />或添加 <span className="text-accent">cq4biz</span>
+                </p>
+              </div>
+              <div className="mx-auto w-3 h-3 rotate-45 border-r border-b border-card-border bg-card -mt-1.5" />
+            </div>
+          </>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export default function Home() {
   const [showQR, setShowQR] = useState(false);
+  const [bestEndpoint, setBestEndpoint] = useState<string | null>(null);
+  const [probing, setProbing] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const results = await probeAll();
+        if (!cancelled) {
+          const best = results.find((r) => r.healthy);
+          setBestEndpoint(best ? best.endpoint : null);
+        }
+      } finally {
+        if (!cancelled) setProbing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const getToolHref = useCallback(
+    (tool: (typeof tools)[number]) => {
+      if (!tool.needsLB) return tool.path;
+      if (probing) return undefined;
+      return bestEndpoint ? bestEndpoint + tool.path : undefined;
+    },
+    [bestEndpoint, probing]
+  );
 
   return (
     <div className="min-h-screen lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden bg-grid relative">
@@ -162,34 +252,8 @@ export default function Home() {
                     <s.icon className="w-4 h-4" />
                   </a>
                 ))}
-                {/* WeChat with click toggle (mobile friendly) */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => setShowQR(true)}
-                  onMouseLeave={() => setShowQR(false)}
-                >
-                  <button
-                    aria-label="WeChat: cq4biz"
-                    onClick={() => setShowQR((v) => !v)}
-                    className="flex items-center justify-center w-9 h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
-                  >
-                    <WeChatIcon className="w-4 h-4" />
-                  </button>
-                  {showQR && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:absolute lg:inset-auto lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-4" onClick={(e) => { if (e.target === e.currentTarget) setShowQR(false); }}>
-                      <div className="rounded-2xl border border-card-border bg-card p-4 shadow-2xl shadow-black/50">
-                        <Image
-                          src="/wechat-qrcode.png"
-                          alt="WeChat QR Code"
-                          width={768}
-                          height={768}
-                          className="rounded-xl w-[260px] h-[260px] object-contain"
-                        />
-                        <p className="mt-3 text-center text-sm font-mono text-muted">WeChat: cq4biz</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* WeChat with click toggle */}
+                <WeChatButton showQR={showQR} setShowQR={setShowQR} />
               </div>
             </div>
           </aside>
@@ -205,33 +269,51 @@ export default function Home() {
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {projects.map((p) => (
-                  <a
-                    key={p.title}
-                    href={p.href}
-                    className="group card-hover block rounded-xl border border-card-border bg-card/50 backdrop-blur-sm p-5"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent-dim">
-                          <p.icon className="w-4 h-4 text-accent" />
+                {tools.map((t) => {
+                  const href = getToolHref(t);
+                  const disabled = t.needsLB && !href;
+                  return (
+                    <a
+                      key={t.id}
+                      href={href ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-disabled={disabled}
+                      className={`group card-hover block rounded-xl border border-card-border bg-card/50 backdrop-blur-sm p-5 ${disabled ? "opacity-50 pointer-events-none" : ""}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent-dim">
+                            <t.icon className="w-4 h-4 text-accent" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold group-hover:text-accent transition-colors">
+                              {t.title}
+                            </h3>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                              {t.tag}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-semibold group-hover:text-accent transition-colors">
-                            {p.title}
-                          </h3>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
-                            {p.tag}
-                          </span>
+                        <div className="flex items-center gap-1.5">
+                          {t.needsLB && probing && (
+                            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" title="探测中…" />
+                          )}
+                          {t.needsLB && !probing && bestEndpoint && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" title="节点可用" />
+                          )}
+                          {t.needsLB && !probing && !bestEndpoint && (
+                            <span className="w-2 h-2 rounded-full bg-red-400" title="节点离线" />
+                          )}
+                          <ArrowUpRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-200" />
                         </div>
                       </div>
-                      <ArrowUpRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-200" />
-                    </div>
-                    <p className="mt-3 text-xs leading-relaxed text-muted">
-                      {p.description}
-                    </p>
-                  </a>
-                ))}
+                      <p className="mt-3 text-xs leading-relaxed text-muted">
+                        {t.description}
+                      </p>
+                    </a>
+                  );
+                })}
               </div>
             </section>
 

@@ -26,10 +26,10 @@ export interface ProbeResult {
  * 2. no-cors fallback — opaque response, but proves server is reachable
  */
 async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
-  console.log("[LB] Probing:", endpoint);
   const start = performance.now();
 
-  // --- Strategy 1: cors mode (best signal) ---
+  // --- Strategy 1: CORS with ngrok-skip-browser-warning ---
+  // Best signal when backend is running (FastAPI CORS middleware handles OPTIONS preflight)
   try {
     const res = await fetch(endpoint, {
       method: "GET",
@@ -39,43 +39,58 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
     });
 
     const latency = performance.now() - start;
-
-    if (!res.ok) {
-      console.log("[LB] CORS !ok:", endpoint, res.status);
-      return { endpoint, healthy: false, latency: Infinity };
-    }
+    if (!res.ok) return { endpoint, healthy: false, latency: Infinity };
 
     const text = await res.text();
     const isNgrokError =
       text.includes("ngrok") &&
       (text.includes("ERR_NGROK") || text.includes("Tunnel not found"));
 
-    console.log("[LB] CORS ok:", endpoint, "healthy:", !isNgrokError);
     return { endpoint, healthy: !isNgrokError, latency: isNgrokError ? Infinity : latency };
-  } catch (e) {
-    console.log("[LB] CORS error:", endpoint, e);
-    // CORS blocked or network error — try no-cors fallback
+  } catch {
+    // CORS preflight failed or network error
   }
 
-  // --- Strategy 2: no-cors fallback (opaque response) ---
+  // --- Strategy 2: CORS without custom header (no preflight) ---
+  // Simple request — no OPTIONS preflight needed.
+  // Works if ngrok forwards fetch requests directly to backend.
   try {
-    const ctrl2 = new AbortController();
-    const timer2 = setTimeout(() => ctrl2.abort(), 15000);
+    const res = await fetch(endpoint, {
+      method: "GET",
+      mode: "cors",
+      signal: abortTimeout(15000),
+    });
 
-    await fetch(endpoint, {
+    const latency = performance.now() - start;
+    if (!res.ok) return { endpoint, healthy: false, latency: Infinity };
+
+    const text = await res.text();
+    const isNgrokError =
+      text.includes("ngrok") &&
+      (text.includes("ERR_NGROK") || text.includes("Tunnel not found"));
+
+    return { endpoint, healthy: !isNgrokError, latency: isNgrokError ? Infinity : latency };
+  } catch {
+    // CORS failed (ngrok interstitial or dead tunnel)
+  }
+
+  // --- Strategy 3: no-cors fallback (opaque but proves reachable) ---
+  try {
+    const res = await fetch(endpoint, {
       method: "HEAD",
       mode: "no-cors",
-      signal: ctrl2.signal,
+      signal: abortTimeout(15000),
     });
-    clearTimeout(timer2);
 
-    console.log("[LB] no-cors fallback:", endpoint);
-    // Server responded but we can't verify it's not an error page
-    // (opaque responses hide status code). Mark as unhealthy to avoid
-    // false positives when backend is dead but ngrok returns 502.
+    const latency = performance.now() - start;
+
+    // opaque response means server responded — mark reachable
+    if (res.type === "opaque" || res.ok) {
+      return { endpoint, healthy: true, latency };
+    }
+
     return { endpoint, healthy: false, latency: Infinity };
-  } catch (e) {
-    console.log("[LB] no-cors error:", endpoint, e);
+  } catch {
     return { endpoint, healthy: false, latency: Infinity };
   }
 }

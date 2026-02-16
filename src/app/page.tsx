@@ -121,7 +121,11 @@ export default function Home() {
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   Builder · Tinkerer · Minimalist<br />
-                  Crafting tools, breaking things, shipping fast.
+                  Indie Dev · AI Artist · Crafting Tools
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  独立开发者 / AI美学探索者 / 自媒体<br />
+                  折腾工具，探索美学，极简主义。
                 </p>
               </div>
 
@@ -132,7 +136,8 @@ export default function Home() {
               >
                 <div className="flex items-center gap-2 text-xs font-mono text-muted">
                   <Terminal className="w-3.5 h-3.5 text-accent" />
-                  <span>Full-stack · Systems · AI</span>
+                  <span className="text-accent">$</span>
+                  <span>indie-dev --ai --aesthetics</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono text-muted">
                   <Globe className="w-3.5 h-3.5 text-accent" />
@@ -176,9 +181,9 @@ export default function Home() {
                         <Image
                           src="/wechat-qrcode.png"
                           alt="WeChat QR Code"
-                          width={280}
-                          height={280}
-                          className="rounded-xl w-[280px] h-[280px]"
+                          width={768}
+                          height={768}
+                          className="rounded-xl w-[260px] h-[260px] object-contain"
                         />
                         <p className="mt-3 text-center text-sm font-mono text-muted">WeChat: cq4biz</p>
                       </div>

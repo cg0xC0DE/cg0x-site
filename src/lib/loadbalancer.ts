@@ -4,6 +4,16 @@ const ENDPOINTS = [
   "https://dentiled-gennie-stichometrical.ngrok-free.dev",
 ];
 
+// Polyfill for AbortSignal.timeout (iOS Safari < 16.4, Chrome < 103)
+function abortTimeout(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && (AbortSignal as any).timeout) {
+    return (AbortSignal as any).timeout(ms);
+  }
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
+}
+
 export interface ProbeResult {
   endpoint: string;
   healthy: boolean;
@@ -16,24 +26,22 @@ export interface ProbeResult {
  * 2. no-cors fallback — opaque response, but proves server is reachable
  */
 async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
+  console.log("[LB] Probing:", endpoint);
   const start = performance.now();
 
   // --- Strategy 1: cors mode (best signal) ---
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
-
     const res = await fetch(endpoint, {
       method: "GET",
       mode: "cors",
-      signal: ctrl.signal,
+      signal: abortTimeout(5000),
       headers: { "ngrok-skip-browser-warning": "1" },
     });
-    clearTimeout(timer);
 
     const latency = performance.now() - start;
 
     if (!res.ok) {
+      console.log("[LB] CORS !ok:", endpoint, res.status);
       return { endpoint, healthy: false, latency: Infinity };
     }
 
@@ -42,8 +50,10 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
       text.includes("ngrok") &&
       (text.includes("ERR_NGROK") || text.includes("Tunnel not found"));
 
+    console.log("[LB] CORS ok:", endpoint, "healthy:", !isNgrokError);
     return { endpoint, healthy: !isNgrokError, latency: isNgrokError ? Infinity : latency };
-  } catch {
+  } catch (e) {
+    console.log("[LB] CORS error:", endpoint, e);
     // CORS blocked or network error — try no-cors fallback
   }
 
@@ -59,11 +69,13 @@ async function probeEndpoint(endpoint: string): Promise<ProbeResult> {
     });
     clearTimeout(timer2);
 
+    console.log("[LB] no-cors fallback:", endpoint);
     // Server responded but we can't verify it's not an error page
     // (opaque responses hide status code). Mark as unhealthy to avoid
     // false positives when backend is dead but ngrok returns 502.
     return { endpoint, healthy: false, latency: Infinity };
-  } catch {
+  } catch (e) {
+    console.log("[LB] no-cors error:", endpoint, e);
     return { endpoint, healthy: false, latency: Infinity };
   }
 }

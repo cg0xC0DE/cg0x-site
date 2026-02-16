@@ -15,55 +15,45 @@ import {
   Clipboard,
   AudioLines,
   Palette,
+  Languages,
 } from "lucide-react";
 import { probeAll } from "@/lib/loadbalancer";
+import { t, type Locale } from "@/lib/i18n";
 
-const tools = [
+const toolsDef = [
   {
-    id: "paste",
-    title: "Paste",
-    description: "轻量在线剪贴板，支持代码高亮与临时分享",
+    id: "paste" as const,
+    titleKey: "tool.paste.title" as const,
+    descKey: "tool.paste.desc" as const,
     path: "/paste/",
     icon: Clipboard,
-    tag: "Tool",
+    tagKey: "tagTool" as const,
     needsLB: true,
   },
   {
-    id: "link2asr",
-    title: "Link2ASR",
-    description: "粘贴链接，自动提取音频并转写为文字",
+    id: "link2asr" as const,
+    titleKey: "tool.link2asr.title" as const,
+    descKey: "tool.link2asr.desc" as const,
     path: "/link2asr/",
     icon: AudioLines,
-    tag: "Tool",
+    tagKey: "tagTool" as const,
     needsLB: true,
   },
   {
-    id: "civitai",
-    title: "Civitai 美学探索",
-    description: "AI 美学分析工作台，探索 Civitai 模型与图像美学",
+    id: "civitai" as const,
+    titleKey: "tool.civitai.title" as const,
+    descKey: "tool.civitai.desc" as const,
     path: "https://github.com/cg0xC0DE/civitai-downloader",
     icon: Palette,
-    tag: "Project",
+    tagKey: "tagProject" as const,
     needsLB: false,
   },
 ];
 
-const articles = [
-  {
-    title: "Building a Minimal CLI in Rust",
-    date: "2026-02-10",
-    href: "#",
-  },
-  {
-    title: "Why I Moved to Azure Static Web Apps",
-    date: "2026-01-28",
-    href: "#",
-  },
-  {
-    title: "Reverse Engineering a Smart Lock Protocol",
-    date: "2026-01-15",
-    href: "#",
-  },
+const articlesDef = [
+  { titleKey: "article.1.title" as const, date: "2026-02-10", href: "#" },
+  { titleKey: "article.2.title" as const, date: "2026-01-28", href: "#" },
+  { titleKey: "article.3.title" as const, date: "2026-01-15", href: "#" },
 ];
 
 const socials = [
@@ -88,9 +78,11 @@ function WeChatIcon({ className }: { className?: string }) {
 function WeChatButton({
   showQR,
   setShowQR,
+  locale,
 }: {
   showQR: boolean;
   setShowQR: Dispatch<SetStateAction<boolean>>;
+  locale: Locale;
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -134,7 +126,10 @@ function WeChatButton({
                   className="rounded-xl block max-w-none"
                 />
                 <p className="mt-3 text-center text-xs leading-relaxed font-mono text-muted">
-                  扫描上方艺术二维码<br />或添加 <span className="text-accent">cq4biz</span>
+                  {t("wechatQR", locale).split("\n").map((line, i) => (
+                    <span key={i}>{i > 0 && <br />}{line}</span>
+                  ))}
+                  <span className="text-accent">cq4biz</span>
                 </p>
               </div>
               <div className="mx-auto w-3 h-3 rotate-45 border-r border-b border-card-border bg-card -mt-1.5" />
@@ -150,6 +145,20 @@ export default function Home() {
   const [showQR, setShowQR] = useState(false);
   const [bestEndpoint, setBestEndpoint] = useState<string | null>(null);
   const [probing, setProbing] = useState(true);
+  const [locale, setLocale] = useState<Locale>("zh");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lang") as Locale | null;
+    if (saved === "en" || saved === "zh") setLocale(saved);
+  }, []);
+
+  const toggleLocale = useCallback(() => {
+    setLocale((prev) => {
+      const next = prev === "zh" ? "en" : "zh";
+      localStorage.setItem("lang", next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +177,7 @@ export default function Home() {
   }, []);
 
   const getToolHref = useCallback(
-    (tool: (typeof tools)[number]) => {
+    (tool: (typeof toolsDef)[number]) => {
       if (!tool.needsLB) return tool.path;
       if (probing) return undefined;
       return bestEndpoint ? bestEndpoint + tool.path : undefined;
@@ -204,18 +213,15 @@ export default function Home() {
               {/* Name & Bio */}
               <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
                 <h1 className="text-2xl font-bold tracking-tight">
-                  长歌
+                  {t("name", locale)}
                 </h1>
                 <p className="mt-1 text-sm font-mono text-accent">
                   @cg0x
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Builder · Tinkerer · Minimalist<br />
-                  Indie Dev · AI Artist · Crafting Tools
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  独立开发者 / AI美学探索者 / 自媒体<br />
-                  折腾工具，探索美学，极简主义。
+                  {t("bio", locale).split("\n").map((line, i) => (
+                    <span key={i}>{i > 0 && <br />}{line}</span>
+                  ))}
                 </p>
               </div>
 
@@ -253,7 +259,15 @@ export default function Home() {
                   </a>
                 ))}
                 {/* WeChat with click toggle */}
-                <WeChatButton showQR={showQR} setShowQR={setShowQR} />
+                <WeChatButton showQR={showQR} setShowQR={setShowQR} locale={locale} />
+                {/* Language toggle */}
+                <button
+                  onClick={toggleLocale}
+                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
+                  aria-label="Toggle language"
+                >
+                  <span className="text-xs font-mono font-semibold">{t("switchLang", locale)}</span>
+                </button>
               </div>
             </div>
           </aside>
@@ -265,16 +279,16 @@ export default function Home() {
               <div className="flex items-center gap-2 mb-6">
                 <Wrench className="w-4 h-4 text-accent" />
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
-                  Tools & Projects
+                  {t("sectionTools", locale)}
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {tools.map((t) => {
-                  const href = getToolHref(t);
-                  const disabled = t.needsLB && !href;
+                {toolsDef.map((tool) => {
+                  const href = getToolHref(tool);
+                  const disabled = tool.needsLB && !href;
                   return (
                     <a
-                      key={t.id}
+                      key={tool.id}
                       href={href ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -284,32 +298,32 @@ export default function Home() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent-dim">
-                            <t.icon className="w-4 h-4 text-accent" />
+                            <tool.icon className="w-4 h-4 text-accent" />
                           </div>
                           <div>
                             <h3 className="text-sm font-semibold group-hover:text-accent transition-colors">
-                              {t.title}
+                              {t(tool.titleKey, locale)}
                             </h3>
                             <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
-                              {t.tag}
+                              {t(tool.tagKey, locale)}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          {t.needsLB && probing && (
-                            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" title="探测中…" />
+                          {tool.needsLB && probing && (
+                            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" title={t("probing", locale)} />
                           )}
-                          {t.needsLB && !probing && bestEndpoint && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400" title="节点可用" />
+                          {tool.needsLB && !probing && bestEndpoint && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" title={t("nodeUp", locale)} />
                           )}
-                          {t.needsLB && !probing && !bestEndpoint && (
-                            <span className="w-2 h-2 rounded-full bg-red-400" title="节点离线" />
+                          {tool.needsLB && !probing && !bestEndpoint && (
+                            <span className="w-2 h-2 rounded-full bg-red-400" title={t("nodeDown", locale)} />
                           )}
                           <ArrowUpRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-200" />
                         </div>
                       </div>
                       <p className="mt-3 text-xs leading-relaxed text-muted">
-                        {t.description}
+                        {t(tool.descKey, locale)}
                       </p>
                     </a>
                   );
@@ -322,20 +336,20 @@ export default function Home() {
               <div className="flex items-center gap-2 mb-6">
                 <Flame className="w-4 h-4 text-accent" />
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
-                  Recent Posts
+                  {t("sectionPosts", locale)}
                 </h2>
               </div>
               <div className="space-y-2">
-                {articles.map((a) => (
+                {articlesDef.map((a) => (
                   <a
-                    key={a.title}
+                    key={a.titleKey}
                     href={a.href}
                     className="group card-hover flex items-center justify-between rounded-lg border border-card-border bg-card/30 px-5 py-4"
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-accent/60 group-hover:bg-accent transition-colors" />
                       <span className="text-sm font-medium truncate group-hover:text-accent transition-colors">
-                        {a.title}
+                        {t(a.titleKey, locale)}
                       </span>
                     </div>
                     <span className="shrink-0 ml-4 text-xs font-mono text-muted">
@@ -351,9 +365,9 @@ export default function Home() {
               <div className="rounded-xl border border-card-border bg-card/30 p-5">
                 <div className="flex items-center gap-2 text-xs font-mono text-muted">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
-                  <span>All systems operational</span>
+                  <span>{t("statusOk", locale)}</span>
                   <span className="mx-2 text-card-border">|</span>
-                  <span>Last deploy: just now</span>
+                  <span>{t("lastDeploy", locale)}</span>
                 </div>
               </div>
             </section>
@@ -363,9 +377,9 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-muted">
                 <span>&copy; {new Date().getFullYear()} cg0x.ai</span>
                 <span className="flex items-center gap-1.5">
-                  Built with
+                  {t("builtWith", locale)}
                   <span className="text-accent">Next.js</span>
-                  &middot; Deployed on
+                  &middot; {t("deployedOn", locale)}
                   <span className="text-accent">Azure</span>
                 </span>
               </div>

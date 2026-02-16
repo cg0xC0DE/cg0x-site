@@ -194,10 +194,11 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row lg:h-[100dvh]">
           {/* ===== LEFT: Profile Card (fixed, no scroll on desktop) ===== */}
           <aside className="lg:w-[380px] shrink-0 lg:h-[100dvh] lg:overflow-visible lg:px-10 lg:flex lg:items-center">
-            <div className="space-y-5">
+            {/* Mobile: horizontal compact layout | Desktop: vertical layout */}
+            <div className="flex flex-row lg:flex-col gap-4 lg:gap-5 items-start lg:items-stretch">
               {/* Avatar */}
-              <div className="animate-fade-in-up">
-                <div className="relative w-28 h-28 rounded-2xl overflow-hidden border border-card-border glow">
+              <div className="animate-fade-in-up shrink-0">
+                <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-2xl overflow-hidden border border-card-border glow">
                   <Image
                     src="/avatar.png"
                     alt="CG0X Avatar"
@@ -210,64 +211,65 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Name & Bio */}
-              <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-                <h1 className="text-2xl font-bold tracking-tight">
-                  {t("name", locale)}
-                </h1>
-                <p className="mt-1 text-sm font-mono text-accent">
-                  @cg0x
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  {t("bio", locale).split("\n").map((line, i) => (
-                    <span key={i}>{i > 0 && <br />}{line}</span>
-                  ))}
-                </p>
-              </div>
-
-              {/* Info card */}
-              <div
-                className="animate-fade-in-up rounded-xl border border-card-border bg-card/60 backdrop-blur-sm p-3 space-y-2"
-                style={{ animationDelay: "0.2s" }}
-              >
-                <div className="flex items-center gap-2 text-xs font-mono text-muted">
-                  <Terminal className="w-3.5 h-3.5 text-accent" />
-                  <span className="text-accent">$</span>
-                  <span>indie-dev --ai --aesthetics</span>
+              {/* Right side: Name, Bio, Info Card (mobile) | Stacked (desktop) */}
+              <div className="flex-1 min-w-0 flex flex-col lg:flex-col gap-3 lg:gap-5">
+                {/* Name & Bio */}
+                <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+                  <h1 className="text-xl lg:text-2xl font-bold tracking-tight">
+                    {t("name", locale)}
+                  </h1>
+                  <p className="mt-0.5 lg:mt-1 text-xs lg:text-sm font-mono text-accent">
+                    @cg0x
+                  </p>
+                  <p className="mt-2 text-xs lg:text-sm leading-relaxed text-muted line-clamp-2 lg:line-clamp-none">
+                    {t("bio", locale)}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-mono text-muted">
-                  <Globe className="w-3.5 h-3.5 text-accent" />
-                  <span>cg0x.ai</span>
-                </div>
-              </div>
 
-              {/* Social links */}
-              <div
-                className="animate-fade-in-up flex gap-3"
-                style={{ animationDelay: "0.3s" }}
-              >
-                {socials.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.label}
-                    className="flex items-center justify-center w-9 h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
-                  >
-                    <s.icon className="w-4 h-4" />
-                  </a>
-                ))}
-                {/* WeChat with click toggle */}
-                <WeChatButton showQR={showQR} setShowQR={setShowQR} locale={locale} />
-                {/* Language toggle */}
-                <button
-                  onClick={toggleLocale}
-                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
-                  aria-label="Toggle language"
+                {/* Info card */}
+                <div
+                  className="animate-fade-in-up rounded-xl border border-card-border bg-card/60 backdrop-blur-sm p-2 lg:p-3 space-y-1 lg:space-y-2"
+                  style={{ animationDelay: "0.2s" }}
                 >
-                  <span className="text-xs font-mono font-semibold">{t("switchLang", locale)}</span>
-                </button>
+                  <div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs font-mono text-muted">
+                    <Terminal className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-accent" />
+                    <span className="text-accent">$</span>
+                    <span className="truncate">indie-dev --ai</span>
+                  </div>
+                  <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-muted">
+                    <Globe className="w-3.5 h-3.5 text-accent" />
+                    <span>cg0x.ai</span>
+                  </div>
+                </div>
+
+                {/* Social links */}
+                <div
+                  className="animate-fade-in-up flex flex-wrap gap-2 lg:gap-3"
+                  style={{ animationDelay: "0.3s" }}
+                >
+                  {socials.map((s) => (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={s.label}
+                      className="flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
+                    >
+                      <s.icon className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                    </a>
+                  ))}
+                  {/* WeChat with click toggle */}
+                  <WeChatButton showQR={showQR} setShowQR={setShowQR} locale={locale} />
+                  {/* Language toggle */}
+                  <button
+                    onClick={toggleLocale}
+                    className="flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-lg border border-card-border bg-card/40 text-muted hover:text-accent hover:border-accent/40 transition-all duration-200"
+                    aria-label="Toggle language"
+                  >
+                    <span className="text-[10px] lg:text-xs font-mono font-semibold">{t("switchLang", locale)}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </aside>

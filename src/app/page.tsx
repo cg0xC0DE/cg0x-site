@@ -173,7 +173,9 @@ export default function Home() {
   const getToolHref = useCallback(
     (tool: (typeof toolsDef)[number]) => {
       if (!tool.needsLB) return tool.path;
-      return activeDomain ? activeDomain + tool.path : undefined;
+      if (!activeDomain) return undefined;
+      const base = activeDomain + tool.path;
+      return base + "?ngrok-skip-browser-warning=true";
     },
     [activeDomain]
   );

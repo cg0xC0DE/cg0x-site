@@ -16,7 +16,6 @@ import {
   Palette,
   Languages,
 } from "lucide-react";
-import { probeAll } from "@/lib/loadbalancer";
 import { t, type Locale } from "@/lib/i18n";
 
 const toolsDef = [
@@ -137,8 +136,7 @@ function WeChatButton({
 
 export default function Home() {
   const [showQR, setShowQR] = useState(false);
-  const [bestEndpoint, setBestEndpoint] = useState<string | null>(null);
-  const [probing, setProbing] = useState(true);
+  const [activeDomain, setActiveDomain] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("zh");
 
   useEffect(() => {
@@ -158,25 +156,26 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const results = await probeAll();
-        if (!cancelled) {
-          const best = results.find((r) => r.healthy);
-          setBestEndpoint(best ? best.endpoint : null);
-        }
-      } finally {
-        if (!cancelled) setProbing(false);
+        const res = await fetch("/active-domain.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { active?: string };
+        const active = (data.active || "").trim();
+        if (!cancelled) setActiveDomain(active || null);
+      } catch {
+        if (!cancelled) setActiveDomain(null);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getToolHref = useCallback(
     (tool: (typeof toolsDef)[number]) => {
       if (!tool.needsLB) return tool.path;
-      if (probing) return undefined;
-      return bestEndpoint ? bestEndpoint + tool.path : undefined;
+      return activeDomain ? activeDomain + tool.path : undefined;
     },
-    [bestEndpoint, probing]
+    [activeDomain]
   );
 
   return (
@@ -306,13 +305,10 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          {tool.needsLB && probing && (
-                            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" title={t("probing", locale)} />
-                          )}
-                          {tool.needsLB && !probing && bestEndpoint && (
+                          {tool.needsLB && activeDomain && (
                             <span className="w-2 h-2 rounded-full bg-emerald-400" title={t("nodeUp", locale)} />
                           )}
-                          {tool.needsLB && !probing && !bestEndpoint && (
+                          {tool.needsLB && !activeDomain && (
                             <span className="w-2 h-2 rounded-full bg-red-400" title={t("nodeDown", locale)} />
                           )}
                           <ArrowUpRight className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-200" />

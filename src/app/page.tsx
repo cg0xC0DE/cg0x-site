@@ -9,7 +9,6 @@ import {
   Mail,
   ArrowUpRight,
   Wrench,
-  Flame,
   Terminal,
   Globe,
   Clipboard,
@@ -50,11 +49,6 @@ const toolsDef = [
   },
 ];
 
-const articlesDef = [
-  { titleKey: "article.1.title" as const, date: "2026-02-10", href: "#" },
-  { titleKey: "article.2.title" as const, date: "2026-01-28", href: "#" },
-  { titleKey: "article.3.title" as const, date: "2026-01-15", href: "#" },
-];
 
 const socials = [
   { icon: Github, href: "https://github.com/cg0xC0DE", label: "GitHub" },
@@ -333,34 +327,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section: Hot Articles */}
-            <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-              <div className="flex items-center gap-2 mb-6">
-                <Flame className="w-4 h-4 text-accent" />
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
-                  {t("sectionPosts", locale)}
-                </h2>
-              </div>
-              <div className="space-y-2">
-                {articlesDef.map((a) => (
-                  <a
-                    key={a.titleKey}
-                    href={a.href}
-                    className="group card-hover flex items-center justify-between rounded-lg border border-card-border bg-card/30 px-5 py-4"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-accent/60 group-hover:bg-accent transition-colors" />
-                      <span className="text-sm font-medium truncate group-hover:text-accent transition-colors">
-                        {t(a.titleKey, locale)}
-                      </span>
-                    </div>
-                    <span className="shrink-0 ml-4 text-xs font-mono text-muted">
-                      {a.date}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </section>
 
             {/* Section: Quick Status */}
             <section className="animate-fade-in-up" style={{ animationDelay: "0.45s" }}>

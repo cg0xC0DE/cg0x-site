@@ -24,6 +24,11 @@ const dict = {
     en: "Paste a link, auto-extract audio and transcribe to text",
     zh: "粘贴链接，自动提取音频并转写为文字",
   },
+  "tool.iconscout.title": { en: "IconScout", zh: "IconScout 图标探索" },
+  "tool.iconscout.desc": {
+    en: "Brand icons collection and color palette analysis",
+    zh: "品牌图标收集与配色分析",
+  },
   "tool.civitai.title": { en: "Civitai Aesthetics", zh: "Civitai 美学探索" },
   "tool.civitai.desc": {
     en: "AI aesthetics analysis workbench for Civitai models & images",

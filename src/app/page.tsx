@@ -13,6 +13,7 @@ import {
   Globe,
   Clipboard,
   AudioLines,
+  Search,
   Palette,
   Languages,
 } from "lucide-react";
@@ -25,6 +26,15 @@ const toolsDef = [
     descKey: "tool.paste.desc" as const,
     path: "/paste/",
     icon: Clipboard,
+    tagKey: "tagTool" as const,
+    needsLB: true,
+  },
+  {
+    id: "iconscout" as const,
+    titleKey: "tool.iconscout.title" as const,
+    descKey: "tool.iconscout.desc" as const,
+    path: "/iconscout/",
+    icon: Search,
     tagKey: "tagTool" as const,
     needsLB: true,
   },
